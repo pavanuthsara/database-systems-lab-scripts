@@ -5,9 +5,6 @@ ADD MEMBER FUNCTION yieldOfStocks RETURN FLOAT CASCADE;
 -- to check the stock type
 DESC lb3_stocks;
 
-SELECT s.company, ROUND(s.yieldOfStocks(),2)
-FROM lb3_stocks_table s;
-
 -- 1.b
 ALTER TYPE lb3_stocks
 ADD MEMBER FUNCTION priceInUsd(usdRate FLOAT) 
@@ -51,8 +48,7 @@ ALTER TYPE lb3_clients_type
 ADD MEMBER FUNCTION calculateTotalPurchase
 RETURN FLOAT
 CASCADE;
-        
-       
+         
 DESC  lb3_clients_type;
 -- 1.e
 ALTER TYPE lb3_clients_type
@@ -91,7 +87,7 @@ FROM lb3_stocks_table s
 WHERE s.countOfExchanges()>1;
         
 -- 2.c
-SELECT c.firstname, i.company.company, ROUND(i.company.yieldOfStocks(),2) AS current_yield, i.company.current_rate AS current_price, (i.company.current_rate - i.purchaseprice) AS EARNINGS_PER_SHARE
+SELECT c.firstname, i.company.company, ROUND(i.company.yieldOfStocks(),2) AS current_yield, i.company.current_rate AS current_price, (i.company.eps) AS EARNINGS_PER_SHARE
 FROM lb3_clients_table c, TABLE(c.invesments) i;
 
 -- 2.d
@@ -102,7 +98,7 @@ FROM lb3_clients_table c;
 SELECT c.firstname, c.calculateTotalProfit() AS TOTAL_PROFIT
 FROM lb3_clients_table c;
 
---test
+-- test the 2.e with manual query
 SELECT c.firstname,  sum((i.company.current_rate-i.purchaseprice)*  i.qty)
 from lb3_clients_table c, table(c.invesments) i
 group by c.firstname;        
