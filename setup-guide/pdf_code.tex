@@ -1,0 +1,311 @@
+\documentclass[a4paper,12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\geometry{margin=1in}
+\usepackage{sectsty}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true, linkcolor=blue, urlcolor=blue}
+\usepackage{parskip}
+\setlength{\parskip}{1em}
+\usepackage{listings}
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  columns=fullflexible,
+  frame=single,
+  numbers=none,
+  showspaces=false,
+  showstringspaces=false
+}
+\usepackage{tocloft}
+\renewcommand{\cftsecleader}{\cftdotfill{\cftdotsep}}
+\usepackage[sc]{mathpazo}
+\linespread{1.05}
+
+\begin{document}
+
+\begin{titlepage}
+  \centering
+  \vspace*{2cm}
+  \Huge\textbf{Oracle Database Setup with Docker \\} 
+  \vspace{1cm}
+  \Large A Step-by-Step Guide for Installation and SQL Execution
+  \vspace{2cm}
+  \normalsize Get Hands-On Experience with Oracle Database and Object-Relational Mapping 
+  \vspace{1cm}
+  \normalsize Copyright \textcopyright\ 2025 - All right reserved by Pavan Uthsara
+  \vfill
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\section{Introduction}
+This guide provides a comprehensive specification for installing Oracle Database 23ai Free (the latest free developer edition, superseding Oracle XE) in a Docker container on your laptop. It covers setting up the database, installing GUI tools (Oracle SQL Developer and DBeaver), and executing SQL commands for hands-on experience, including object-relational mapping (ORM). The setup uses a community-maintained Docker image (\texttt{gvenzl/oracle-free:23-full}), which is free and requires no Oracle account.
+
+\subsection{Assumptions}
+\begin{itemize}
+  \item Operating System: Windows, macOS, or Linux.
+  \item Hardware: Minimum 4GB RAM (8GB recommended), 10GB free disk space.
+  \item Internet: Required for downloading Docker images and tools.
+  \item Time Estimate: 30--60 minutes, plus download times.
+\end{itemize}
+
+\section{Prerequisites}
+% Setting up prerequisites
+Before starting, ensure the following are installed:
+\begin{itemize}
+  \item \textbf{Docker Desktop}: Download from \url{https://www.docker.com/products/docker-desktop}. Install and verify with:
+    \begin{lstlisting}
+docker --version
+    \end{lstlisting}
+    Expected output: \texttt{Docker version 27.2.0} or similar. Start Docker Desktop.
+  \item \textbf{Java JDK 11+}: Required for SQL Developer. Download from \url{https://www.oracle.com/java/technologies/downloads} if needed.
+\end{itemize}
+
+\section{Installing Oracle Database in Docker}
+% Pulling Docker image
+\subsection{Pull the Docker Image}
+Open a terminal (Command Prompt/PowerShell on Windows, Terminal on macOS/Linux) and run:
+\begin{lstlisting}
+docker pull gvenzl/oracle-free:23-full
+\end{lstlisting}
+\begin{itemize}
+  \item Downloads the full edition (~5--6 GB) with sample schemas (e.g., HR) for ORM practice.
+  \item Alternatives: \texttt{23-slim} (~2 GB, fewer schemas) or \texttt{latest}.
+  \item Wait 5--30 minutes based on your internet speed.
+\end{itemize}
+
+% Running the container
+\subsection{Run the Docker Container}
+Start the container with a secure password (8+ characters, including uppercase, lowercase, digit, special character). Replace \texttt{MySecurePassword123} with your choice:
+\begin{lstlisting}
+docker run --name oracle-db -p 1521:1521 -e ORACLE_PASSWORD=MySecurePassword123 -d -v oracle-data:/opt/oracle/oradata gvenzl/oracle-free:23-full
+\end{lstlisting}
+\begin{itemize}
+  \item \texttt{--name oracle-db}: Names the container.
+  \item \texttt{-p 1521:1521}: Maps Oracle’s port to localhost.
+  \item \texttt{-e ORACLE_PASSWORD}: Sets SYS/SYSTEM password.
+  \item \texttt{-d}: Runs in background.
+  \item \texttt{-v oracle-data:/opt/oracle/oradata}: Persists data.
+  \item Optional: Use \texttt{-e ORACLE_RANDOM_PASSWORD=true} for a random password (check logs).
+\end{itemize}
+Initialization takes 3--10 minutes. Monitor with:
+\begin{lstlisting}
+docker logs -f oracle-db
+\end{lstlisting}
+Look for \texttt{DATABASE IS READY TO USE!}.
+
+% Verifying container status
+\subsection{Verify Container Status}
+Check if the container is running:
+\begin{lstlisting}
+docker ps
+\end{lstlisting}
+Confirm \texttt{oracle-db} is listed with status \texttt{Up}. If not:
+\begin{itemize}
+  \item Port conflict: Use \texttt{-p 1522:1521} and adjust connections.
+  \item Memory issues: Allocate 4GB+ RAM in Docker settings.
+  \item macOS M-series: Use Colima (\texttt{brew install colima; colima start --arch x86_64 --memory 4}).
+\end{itemize}
+
+% Creating a sample user
+\subsection{Create a Sample Application User}
+Create a non-admin user for ORM practice:
+\begin{lstlisting}
+docker exec -it oracle-db sqlplus sys/MySecurePassword123@localhost:1521/FREEPDB1 as sysdba
+\end{lstlisting}
+In SQL*Plus:
+\begin{lstlisting}
+CREATE USER appuser IDENTIFIED BY app_password;
+GRANT CONNECT, RESOURCE TO appuser;
+GRANT UNLIMITED TABLESPACE TO appuser;
+EXIT;
+\end{lstlisting}
+Use \texttt{appuser}/\texttt{app_password} for connections.
+
+\section{Setting Up GUI Tools}
+% Installing SQL Developer
+\subsection{Primary Tool: Oracle SQL Developer}
+\subsubsection{Download and Install}
+\begin{itemize}
+  \item Download from \url{https://www.oracle.com/database/sqldeveloper/technologies/download} (e.g., version 24.1).
+  \item Choose ZIP with/without JDK based on Java installation.
+  \item Unzip and run:
+    \begin{itemize}
+      \item Windows: \texttt{sqldeveloper.exe}
+      \item macOS/Linux: \texttt{sqldeveloper.sh}
+    \end{itemize}
+  \item If prompted, provide JDK path (Java 11+).
+\end{itemize}
+
+\subsubsection{Connect to the Database}
+\begin{itemize}
+  \item Open SQL Developer, click \texttt{+} to create a connection.
+  \item Settings:
+    \begin{itemize}
+      \item Connection Name: \texttt{OracleDocker}
+      \item Username: \texttt{appuser} (or \texttt{SYS})
+      \item Password: \texttt{app_password} (or \texttt{MySecurePassword123})
+      \item Role: \texttt{SYSDBA} for SYS; blank otherwise
+      \item Connection Type: \texttt{Basic}
+      \item Hostname: \texttt{localhost}
+      \item Port: \texttt{1521}
+      \item Service Name: \texttt{FREEPDB1}
+    \end{itemize}
+  \item Click \texttt{Test Connection}, then \texttt{Connect} if successful.
+\end{itemize}
+
+\subsubsection{Execute SQL Commands}
+\begin{itemize}
+  \item Open a SQL Worksheet (File > New > SQL Worksheet).
+  \item Example commands:
+    \begin{lstlisting}
+-- Create table for ORM
+CREATE TABLE employees (
+  id NUMBER PRIMARY KEY,
+  name VARCHAR2(100),
+  salary NUMBER
+);
+-- Insert data
+INSERT INTO employees VALUES (1, 'John Doe', 50000);
+COMMIT;
+-- Query
+SELECT * FROM employees;
+    \end{lstlisting}
+  \item Run: \texttt{F9} (single statement) or \texttt{F5} (script).
+  \item Browse schemas in the Connections panel.
+\end{itemize}
+
+% Installing DBeaver
+\subsection{Alternative Tool: DBeaver}
+\subsubsection{Download and Install}
+\begin{itemize}
+  \item Download Community Edition from \url{https://dbeaver.io/download} (e.g., version 24.2).
+  \item Install:
+    \begin{itemize}
+      \item Windows/macOS: Run installer.
+      \item Linux: Use DEB/RPM or snap/flatpak.
+    \end{itemize}
+  \item Add Oracle JDBC driver:
+    \begin{itemize}
+      \item Download \texttt{ojdbc11.jar} from \url{https://www.oracle.com/database/technologies/appdev/jdbc-downloads.html}.
+      \item In DBeaver: Database > Driver Manager > Oracle > Libraries > Add File > Select \texttt{ojdbc11.jar}.
+    \end{itemize}
+\end{itemize}
+
+\subsubsection{Connect to the Database}
+\begin{itemize}
+  \item Create new connection: Database > New Database Connection > Oracle.
+  \item Settings:
+    \begin{itemize}
+      \item Host: \texttt{localhost}
+      \item Port: \texttt{1521}
+      \item Database/SID: Service Name, \texttt{FREEPDB1}
+      \item Username: \texttt{appuser} (or \texttt{SYS})
+      \item Password: \texttt{app_password} (or \texttt{MySecurePassword123})
+    \end{itemize}
+  \item Test and connect.
+\end{itemize}
+
+\subsubsection{Execute SQL Commands}
+\begin{itemize}
+  \item Open SQL Editor (right-click connection > SQL Editor).
+  \item Run same example commands as above.
+  \item Execute: \texttt{Ctrl+Enter} (statement) or \texttt{Ctrl+Shift+Enter} (script).
+  \item Use Database Navigator for schema exploration.
+\end{itemize}
+
+\section{Executing SQL Commands: Tips}
+% General SQL execution tips
+\begin{itemize}
+  \item \textbf{Basic Commands}:
+    \begin{itemize}
+      \item Create: \texttt{CREATE TABLE ...}
+      \item Insert: \texttt{INSERT INTO ... VALUES ...; COMMIT;}
+      \item Query: \texttt{SELECT * FROM ...;}
+      \item Update/Delete: \texttt{UPDATE ... SET ...; DELETE FROM ...; COMMIT;}
+    \end{itemize}
+  \item \textbf{ORM Integration}: Use JDBC URL \texttt{jdbc:oracle:thin:@localhost:1521/FREEPDB1} for Java (Hibernate) or Python (cx\_Oracle/SQLAlchemy).
+  \item \textbf{Troubleshooting}:
+    \begin{itemize}
+      \item Verify container: \texttt{docker ps}
+      \item Check logs: \texttt{docker logs oracle-db}
+      \item Firewall: Allow port 1521.
+      \item Credential errors: Check password case sensitivity.
+    \end{itemize}
+\end{itemize}
+
+\section{Managing the Container}
+% Container management commands
+\begin{itemize}
+  \item \textbf{Stop}: To stop the container safely:
+    \begin{lstlisting}
+docker stop oracle-db
+    \end{lstlisting}
+  \item \textbf{Start}: To restart the container (e.g., after rebooting your computer):
+    \begin{lstlisting}
+docker start oracle-db
+    \end{lstlisting}
+  \item \textbf{Remove} (caution: only if you want to delete the container; data persists if using volume):
+    \begin{lstlisting}
+docker rm -f oracle-db
+    \end{lstlisting}
+  \item \textbf{Remove Image} (to free disk space after removing container):
+    \begin{lstlisting}
+docker rmi gvenzl/oracle-free:23-full
+    \end{lstlisting}
+\end{itemize}
+
+% Starting container after computer restart
+\subsection{Starting the Container After Computer Restart}
+Since you turn off your computer daily, follow these steps each day to resume working with the Oracle Database:
+\begin{enumerate}
+  \item \textbf{Start Docker Desktop}: Open Docker Desktop on your computer (Windows, macOS, or Linux). Ensure it’s running before proceeding.
+  \item \textbf{Start the Container}: Open a terminal (Command Prompt/PowerShell on Windows, Terminal on macOS/Linux) and run:
+    \begin{lstlisting}
+docker start oracle-db
+    \end{lstlisting}
+    \begin{itemize}
+      \item This restarts the existing \texttt{oracle-db} container, reusing the persisted data (thanks to the \texttt{-v oracle-data:/opt/oracle/oradata} volume).
+      \item Wait 1--3 minutes for the database to become available. Check status:
+        \begin{lstlisting}
+docker logs oracle-db
+        \end{lstlisting}
+        Look for \texttt{DATABASE IS READY TO USE!}.
+    \end{itemize}
+  \item \textbf{Verify}: Confirm the container is running:
+    \begin{lstlisting}
+docker ps
+    \end{lstlisting}
+    Ensure \texttt{oracle-db} is listed with status \texttt{Up}.
+  \item \textbf{Connect}: Use SQL Developer or DBeaver with the same connection settings (localhost:1521, service name \texttt{FREEPDB1}, user \texttt{appuser}/\texttt{app_password} or \texttt{SYS}/\texttt{MySecurePassword123}).
+\end{enumerate}
+
+% Best practices for stopping the container
+\subsection{Best Practices for Stopping the Container}
+To ensure data integrity and system efficiency when stopping the container:
+\begin{itemize}
+  \item \textbf{Stop Gracefully}: Always use \texttt{docker stop oracle-db} to allow the database to shut down cleanly, preserving data and avoiding corruption.
+  \item \textbf{Avoid Forceful Termination}: Do not use \texttt{docker kill oracle-db} or \texttt{docker rm -f oracle-db} unless absolutely necessary (e.g., container is unresponsive), as this may interrupt database processes.
+  \item \textbf{Stop Before Shutdown}: If you plan to shut down your computer, stop the container first:
+    \begin{lstlisting}
+docker stop oracle-db
+    \end{lstlisting}
+    This ensures the database closes properly.
+  \item \textbf{Monitor Resources}: If you’re not using the database, stop the container to free up memory and CPU (the Oracle container uses ~2GB RAM when running).
+  \item \textbf{Backup Data}: The \texttt{oracle-data} volume persists data across restarts. To back up, export the database using SQL Developer (Tools > Database Export) or DBeaver (right-click database > Tools > Backup).
+\end{itemize}
+
+\section{Next Steps}
+% Suggestions for further learning
+\begin{itemize}
+  \item Explore sample schemas (e.g., \texttt{SELECT * FROM HR.EMPLOYEES;}).
+  \item Build ORM apps with Hibernate (Java) or SQLAlchemy (Python).
+  \item Contact for help with error messages.
+\end{itemize}
+
+\end{document}
