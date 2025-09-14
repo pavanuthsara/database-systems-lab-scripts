@@ -1,0 +1,1 @@
+This pdf file helps you to install Oracle DB locally. Download the pdf and read the document carefully and install it locally.
